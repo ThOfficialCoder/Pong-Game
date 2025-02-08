@@ -3,95 +3,148 @@ using System.Numerics;
 using Raylib_cs;
 
 public class Program {
+
+    static int selectedItem = 0;
+    static string[] menuItems = { "Start Game", "Options", "Quit" };
+    static bool inGame = false;
+
+    static double recPosY = 12;
+    static double rec2PosY = 12;
+    static Vector2 ballPos = new Vector2(400, 300);
+    static Vector2 ballVel = new Vector2(4f, 4f); // Increased speed for better gameplay
+    static float ballRadius = 10;
+
+    static Rectangle rec = new Rectangle(20, (float)recPosY, 20, 60);
+    static Rectangle rec2 = new Rectangle(760, (float)rec2PosY, 20, 60);
+
     public static void Main() {
         Raylib.InitWindow(800, 400, "Hello World");
-
-        int recPosx = 20;
-        double recPosy = 12;
-
-        double rec2Posy = 12;
-        Rectangle rec = new Rectangle(recPosx, (float)recPosy, 20, 60);
-        Rectangle rec2 = new Rectangle(760, (float)rec2Posy, 20, 60);
-        Vector2 ballPos = new Vector2(400, 300);
-        Vector2 ballVel = new Vector2(0.04f, 0.04f);
-        float ballRadius = 10;
-
+        Raylib.SetTargetFPS(60);
 
         while (!Raylib.WindowShouldClose()) {
+            
+            HandleInput();
+
+            if (inGame) {
+                UpdateGame();
+            }
+
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.Gray);
 
-            Raylib.DrawRectangleRec(rec, Color.Black);
-            Raylib.DrawRectangleRec(rec2, Color.Black);
-
-            ballPos.X += ballVel.X;
-            ballPos.Y += ballVel.Y;
-
-            if (Raylib.IsKeyDown(KeyboardKey.S)) {
-                recPosy += 0.1;
-            } else if (Raylib.IsKeyDown(KeyboardKey.W)) {
-                recPosy -= 0.1;
+            if (inGame) {
+                DrawGame();
+            } else {
+                DrawMenu();
             }
-
-            if (Raylib.IsKeyDown(KeyboardKey.Down)) {
-                rec2Posy += 0.1;
-            }
-            else if (Raylib.IsKeyDown(KeyboardKey.Up)) {
-                rec2Posy -= 0.1;
-            }
-
-            if (recPosy < 0) {
-                recPosy = 0;
-            } else if (recPosy + 60 > Raylib.GetScreenHeight()) {
-                recPosy = Raylib.GetScreenHeight() - 60;
-            }
-
-            if (rec2Posy < 0) {
-                rec2Posy = 0;
-            }
-            else if (rec2Posy + 60 > Raylib.GetScreenHeight()) {
-                rec2Posy = Raylib.GetScreenHeight() - 60;
-            }
-
-            if (ballPos.X - ballRadius < 0 || ballPos.X + ballRadius > Raylib.GetScreenWidth()) {
-                ballVel.X *= -1;
-            }
-
-            if (ballPos.Y - ballRadius < 0 || ballPos.Y + ballRadius > Raylib.GetScreenHeight()) {
-                ballVel.Y *= -1;
-            }
-
-            if (Raylib.CheckCollisionCircleRec(ballPos, ballRadius, rec)) {
-                if (ballVel.Y > 0) {
-                    ballPos.Y = rec.Y - ballRadius;
-                } else if (ballVel.Y < 0) {
-                    ballPos.Y = rec.Y + rec.Height + ballRadius; 
-                }
-                ballVel.X *= -1;
-            }
-
-            if (Raylib.CheckCollisionCircleRec(ballPos, ballRadius, rec2)) {
-                if (ballVel.Y > 0) {
-                    ballPos.Y = rec2.Y - ballRadius;
-                }
-                else if (ballVel.Y < 0) {
-                    ballPos.Y = rec2.Y + rec2.Height + ballRadius;
-                }
-                ballVel.X *= -1;
-            }
-
-
-
-            rec2.Y = (float)rec2Posy;
-            rec.Y = (float)recPosy;
-
-            
-
-            Raylib.DrawCircleV(ballPos, ballRadius, Color.Black);
 
             Raylib.EndDrawing();
         }
-
         Raylib.CloseWindow();
+    }
+
+    static void UpdateGame() {
+
+        ballPos += ballVel;;
+
+        if (Raylib.IsKeyDown(KeyboardKey.S)) {
+            recPosY += 5;
+        }
+        else if (Raylib.IsKeyDown(KeyboardKey.W)) {
+            recPosY -= 5;
+        }
+
+        if (Raylib.IsKeyDown(KeyboardKey.Down)) {
+            rec2PosY += 5;
+        }
+        else if (Raylib.IsKeyDown(KeyboardKey.Up)) {
+            rec2PosY -= 5;
+        }
+
+        recPosY = Math.Clamp(recPosY, 0, Raylib.GetScreenHeight() - 60);
+        rec2PosY = Math.Clamp(rec2PosY, 0, Raylib.GetScreenHeight() - 60);
+
+        rec2.Y = (float)rec2PosY;
+        rec.Y = (float)recPosY;
+
+        if (ballPos.Y - ballRadius < 0 || ballPos.Y + ballRadius > Raylib.GetScreenHeight()) {
+            ballVel.Y *= -1;
+        }
+
+        if (Raylib.CheckCollisionCircleRec(ballPos, ballRadius, rec)) {
+            ballVel.X *= -1; // Reverse horizontal velocity
+        }
+
+        if (Raylib.CheckCollisionCircleRec(ballPos, ballRadius, rec2)) {
+            ballVel.X *= -1; // Reverse horizontal velocity
+        }
+
+        // Ball out of bounds (left or right)
+        if (ballPos.X - ballRadius < 0 || ballPos.X + ballRadius > Raylib.GetScreenWidth()) {
+            // Reset ball position
+            ballPos = new Vector2(400, 300);
+            ballVel = new Vector2(4f, 4f);
+        }
+    }
+
+    static void DrawGame() {
+        Raylib.DrawRectangleRec(rec, Color.Black);
+        Raylib.DrawRectangleRec(rec2, Color.Black);
+
+        // Draw ball
+
+        Raylib.DrawCircleV(ballPos, ballRadius, Color.Black);
+    }
+
+    static void HandleInput() {
+
+        if (inGame) {
+            if (Raylib.IsKeyPressed(KeyboardKey.Escape)) {
+                inGame = false;
+            }
+        }
+        else {
+            if (Raylib.IsKeyPressed(KeyboardKey.Down)) {
+                selectedItem = (selectedItem + 1) % menuItems.Length;
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.Up)) {
+                selectedItem = (selectedItem - 1 + menuItems.Length) % menuItems.Length;
+            }
+
+            if (Raylib.IsKeyPressed(KeyboardKey.Enter)) {
+                SelectMenuItem(selectedItem);
+            }
+        }  
+    }
+
+    static void DrawMenu() {
+        int startY = 150;
+        int itemHeight = 50;
+
+        for (int i = 0; i < menuItems.Length; i++) {
+            Color textColor = (i == selectedItem) ? Color.Yellow : Color.White;
+
+            Raylib.DrawText(
+                menuItems[i],
+                300,
+                startY + i * itemHeight,
+                30,
+                textColor
+                );
+        }
+    }
+
+    static void SelectMenuItem(int itemIndex) {
+        switch(itemIndex) {
+            case 0:
+                inGame = true;
+                break;
+            case 1:
+                break;
+            case 2:
+                Raylib.CloseWindow();
+                Environment.Exit(0);
+                break;
+        }
     }
 }
